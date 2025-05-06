@@ -44,6 +44,11 @@ namespace FunctionApp1
                 await file.CopyToAsync(ms);
                 imageBytes = ms.ToArray();
             }
+
+            MemoryStream stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+
+
             int contentLength = imageBytes.Length;
 
             var startRequest = new HttpRequestMessage(HttpMethod.Post,
@@ -72,15 +77,17 @@ namespace FunctionApp1
             string fileUri = uploadJson.RootElement.GetProperty("file").GetProperty("uri").GetString();
 
 
-            var prompt = @"Generate a caption for this image. Then classify the image based on its feature. Only one classification. Create a classification if it doesn't exist.
-
+            var prompt = @"Generate a caption for this image. Then classify the image based on its feature. Only one classification.
+                
                             Current classifications:
                             images/Food
                             images/Plants
                             images/Landmarks
                             images/Technology
                             images/Animals
+                            images/Others
 
+                            Create a classification if it doesn't exist. Use the same format images/classification-name
                             Use this JSON schema:
 
                             result = {'image-caption': str, 'image-classification': str}
@@ -135,9 +142,13 @@ namespace FunctionApp1
             //text = match.Value;
             text = Regex.Replace(text, @"^```json\s*|```$", "", RegexOptions.Multiline).Trim();
             _logger.LogInformation("Text: " + text);
+            var parsedText = JsonDocument.Parse(text).RootElement;
+
+            SaveImageHandler obj = new SaveImageHandler();
+            obj.SaveImageToBlobAsync(stream, displayName, parsedText.GetProperty("image-classification").GetString());
 
 
-            return new OkObjectResult(JsonDocument.Parse(text).RootElement);
+            return new OkObjectResult(parsedText);
         }
     }
 }
