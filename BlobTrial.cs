@@ -24,6 +24,8 @@ namespace FunctionApp1
             var content = await blobStreamReader.ReadToEndAsync();
             _logger.LogInformation($"C# Blob trigger function Processed blob\n Name: {name} \n Data: {content}");
 
+            if (name.Equals(".placeholder")) return;
+
             string category = FileCategorizer.Categorize(name);
 
             string newFileDestination = $"{category}/{name}";
